@@ -3274,6 +3274,7 @@ def ProcessFile(filename, vlevel, extra_check_functions=[]):
       and file_extension != 'cpp'):
     sys.stderr.write('Ignoring %s; not a .cc or .h file\n' % filename)
   else:
+    InitLineBuffer(lines)
     ProcessFileData(filename, file_extension, lines, Error,
                     extra_check_functions)
     if carriage_return_found and os.linesep != '\r\n':
@@ -3282,6 +3283,7 @@ def ProcessFile(filename, vlevel, extra_check_functions=[]):
       Error(filename, 0, 'whitespace/newline', 1,
             'One or more unexpected \\r (^M) found;'
             'better to use only a \\n')
+    WriteLineBuffer(filename)
 
   sys.stderr.write('Done processing %s\n' % filename)
 
