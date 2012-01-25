@@ -1815,6 +1815,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
       if not exception:
         error(filename, linenum, 'whitespace/blank_line', 2,
               'Blank line at the start of a code block.  Is this needed?')
+        RemoveLine(linenum)
     # This doesn't ignore whitespace at the end of a namespace block
     # because that is too hard without pairing open/close braces;
     # however, a special exception is made for namespace closing
@@ -1836,6 +1837,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
           and next_line.find('} else ') == -1):
         error(filename, linenum, 'whitespace/blank_line', 3,
               'Blank line at the end of a code block.  Is this needed?')
+        RemoveLine(linenum)
 
     matched = Match(r'\s*(public|protected|private):', prev_line)
     if matched:
@@ -1971,6 +1973,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
   if Search(r'[^ ({]{', line):
     error(filename, linenum, 'whitespace/braces', 5,
           'Missing space before {')
+    SetLine(linenum, re.sub(r'(?<=[^ ({]){', ' {', GetLine(linenum)))
 
   # Make sure '} else {' has spaces.
   if Search(r'}else', line):
