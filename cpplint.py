@@ -306,7 +306,7 @@ def InitLineBuffer(lines):
   g_lines = [''] + lines + ['']
   g_changed = False
 
-def GetLine(linenum, line):
+def GetLine(linenum):
   global g_lines, g_changed
   return g_lines[linenum]
 
