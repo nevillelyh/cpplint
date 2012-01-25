@@ -2254,6 +2254,7 @@ def CheckStyle(filename, clean_lines, linenum, file_extension, class_state,
   if line.find('\t') != -1:
     error(filename, linenum, 'whitespace/tab', 1,
           'Tab found; better to use spaces')
+    FixLineTab(linenum)
 
   # One or three blank spaces at the beginning of the line is weird; it's
   # hard to reconcile that with 2-space indents.
