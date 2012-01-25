@@ -2289,6 +2289,7 @@ def CheckStyle(filename, clean_lines, linenum, file_extension, class_state,
           'If this is a member-initializer list in a constructor or '
           'the base class list in a class definition, the colon should '
           'be on the following line.')
+    PrependLine(linenum, ' ')
 
 
   # Check if the line is a header guard.
