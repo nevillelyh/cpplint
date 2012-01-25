@@ -302,8 +302,10 @@ _RE_SUPPRESSION = re.compile(r'\bNOLINT\b(\([^)]*\))?')
 _error_suppressions = {}
 
 def InitLineBuffer(lines):
-  global g_lines, g_changed
+  global g_lines, g_header, g_footer, g_changed
   g_lines = [''] + lines + ['']
+  g_header = []
+  g_footer = []
   g_changed = False
 
 def GetLine(linenum):
@@ -369,12 +371,31 @@ def FixLineComment(linenum):
   g_lines[linenum] = line[:pos].rstrip() + '  ' + line[pos:]
   g_changed = True
 
+def AddCopyrightLine():
+  import datetime
+  global g_header, g_footer, g_changed
+  year = datetime.datetime.today().year
+  g_header.insert(0, '')
+  g_header.insert(0, '// Copyright (c) %d Spotify AB' % year)
+  g_changed = True
+
+def AddHeaderGuard(guard):
+  global g_header, g_footer, g_changed
+  g_header.append('#ifndef %s' % guard)
+  g_header.append('#define %s' % guard)
+  g_header.append('')
+  g_footer.append('')
+  g_footer.append('#endif  // %s' % guard)
+  g_changed = True
+
 def WriteLineBuffer(filename):
   """Write line buffer to file."""
   global g_lines, g_changed
   if not g_changed or not _cpplint_state.fix_errors: return
   with open(filename, 'w') as outfile:
+    [outfile.write(line + '\n') for line in g_header if line is not None]
     [outfile.write(line + '\n') for line in g_lines[1:-1] if line is not None]
+    [outfile.write(line + '\n') for line in g_footer if line is not None]
 
 def ParseNolintSuppressions(filename, raw_line, linenum, error):
   """Updates the global list of error-suppressions.
@@ -1107,6 +1128,7 @@ def CheckForCopyright(filename, lines, error):
     error(filename, 0, 'legal/copyright', 5,
           'No copyright message found.  '
           'You should have a line: "Copyright [year] <Copyright Owner>"')
+    AddCopyrightLine()
 
 
 def GetHeaderGuardCPPVariable(filename):
@@ -1167,6 +1189,7 @@ def CheckForHeaderGuard(filename, lines, error):
     error(filename, 0, 'build/header_guard', 5,
           'No #ifndef header guard found, suggested CPP variable is: %s' %
           cppvar)
+    AddHeaderGuard(cppvar)
     return
 
   # The guard should be PATH_FILE_H_, but we also allow PATH_FILE_H__
