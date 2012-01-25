@@ -93,6 +93,7 @@ import unicodedata
 _USAGE = """
 Syntax: cpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
                    [--counting=total|toplevel|detailed]
+                   [--fix-errors=yes|no]
         <file> [file] ...
 
   The style guidelines this tries to follow are those in
@@ -139,6 +140,9 @@ Syntax: cpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
       the top-level categories like 'build' and 'whitespace' will
       also be printed. If 'detailed' is provided, then a count
       is provided for each category like 'build/class'.
+
+    fix-errors=yes|no
+      Whether to fix errors in the file.
 """
 
 # We categorize each error message we print.  Here are the categories.
@@ -504,6 +508,10 @@ class _CppLintState(object):
     # "vs7" - format that Microsoft Visual Studio 7 can parse
     self.output_format = 'emacs'
 
+    # fix errors:
+    # "yes" or "no
+    self.fix_errors = False
+
   def SetOutputFormat(self, output_format):
     """Sets the output format for errors."""
     self.output_format = output_format
@@ -542,6 +550,10 @@ class _CppLintState(object):
       if not (filt.startswith('+') or filt.startswith('-')):
         raise ValueError('Every filter in --filters must start with + or -'
                          ' (%s does not)' % filt)
+
+  def SetFixErrors(self, fix_errors):
+    """Sets whether to fix errors in file"""
+    self.fix_errors = fix_errors
 
   def ResetErrorCounts(self):
     """Sets the module's error statistic back to zero."""
@@ -609,6 +621,11 @@ def _SetFilters(filters):
              Each filter should start with + or -; else we die.
   """
   _cpplint_state.SetFilters(filters)
+
+
+def _SetFixErrors(fix_errors):
+  """Sets whether to fix errors in the file."""
+  _cpplint_state.SetFixErrors(fix_errors)
 
 
 class _FunctionState(object):
@@ -3289,7 +3306,8 @@ def ParseArguments(args):
   try:
     (opts, filenames) = getopt.getopt(args, '', ['help', 'output=', 'verbose=',
                                                  'counting=',
-                                                 'filter='])
+                                                 'filter=',
+                                                 'fix-errors='])
   except getopt.GetoptError:
     PrintUsage('Invalid arguments.')
 
@@ -3297,6 +3315,7 @@ def ParseArguments(args):
   output_format = _OutputFormat()
   filters = ''
   counting_style = ''
+  fix_errors = False
 
   for (opt, val) in opts:
     if opt == '--help':
@@ -3315,6 +3334,10 @@ def ParseArguments(args):
       if val not in ('total', 'toplevel', 'detailed'):
         PrintUsage('Valid counting options are total, toplevel, and detailed')
       counting_style = val
+    elif opt == '--fix-errors':
+      if val not in ('yes', 'no'):
+        PrintUsage('Valid fix options are yes, and no')
+      fix_errors = True if val == 'yes' else False
 
   if not filenames:
     PrintUsage('No files were specified.')
@@ -3323,6 +3346,7 @@ def ParseArguments(args):
   _SetVerboseLevel(verbosity)
   _SetFilters(filters)
   _SetCountingStyle(counting_style)
+  _SetFixErrors(fix_errors)
 
   return filenames
 
