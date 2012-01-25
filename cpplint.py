@@ -1121,6 +1121,8 @@ def CheckForHeaderGuard(filename, lines, error):
                             error)
     error(filename, ifndef_linenum, 'build/header_guard', error_level,
           '#ifndef header guard has wrong style, please use: %s' % cppvar)
+    SetLineBuffer(ifndef_linenum, '#ifndef %s' % cppvar)
+    SetLineBuffer(ifndef_linenum + 1, '#define %s' % cppvar)
 
   if endif != ('#endif  // %s' % cppvar):
     error_level = 0
@@ -1131,6 +1133,7 @@ def CheckForHeaderGuard(filename, lines, error):
                             error)
     error(filename, endif_linenum, 'build/header_guard', error_level,
           '#endif line should be "#endif  // %s"' % cppvar)
+    SetLineBuffer(endif_linenum, '#endif  // %s' % cppvar)
 
 
 def CheckForUnicodeReplacementCharacters(filename, lines, error):
