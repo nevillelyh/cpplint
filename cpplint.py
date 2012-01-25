@@ -319,6 +319,7 @@ def SetLine(linenum, line):
 
 def RemoveLine(linenum):
   global g_lines, g_changed
+  if g_lines[linenum] is None: return
   if g_lines[linenum].strip() == '':
     g_lines[linenum] = None
     g_changed = True
