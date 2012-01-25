@@ -1999,6 +1999,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
   if Search(r';[^\s};\\)/]', line):
     error(filename, linenum, 'whitespace/semicolon', 3,
           'Missing space after ;')
+    SetLine(linenum, re.sub(r';(?=[^\s};\\)/])', '; ', GetLine(linenum)))
 
   # Next we will look for issues with function calls.
   CheckSpacingForFunctionCall(filename, line, linenum, error)
@@ -2017,6 +2018,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
   if Search(r'}else', line):
     error(filename, linenum, 'whitespace/braces', 5,
           'Missing space before else')
+    SetLine(linenum, re.sub(r';else', '; else', GetLine(linenum)))
 
   # You shouldn't have spaces before your brackets, except maybe after
   # 'delete []' or 'new char * []'.
