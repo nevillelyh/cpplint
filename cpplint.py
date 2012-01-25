@@ -363,12 +363,20 @@ def FixLineTab(linenum):
   g_lines[linenum] = line[:pos].replace('\t', ' ' * 2) + line[pos:]
   g_changed = True
 
-def FixLineComment(linenum):
+def FixLineCommentBefore(linenum):
   """Make sure there are 2 spaces between code and comments."""
   global g_lines, g_changed
   line = g_lines[linenum]
   pos = line.find('//')
   g_lines[linenum] = line[:pos].rstrip() + '  ' + line[pos:]
+  g_changed = True
+
+def FixLineCommentAfter(linenum):
+  """Make sure there is 1 space between // and comments."""
+  global g_lines, g_changed
+  line = g_lines[linenum]
+  pos = line.find('//') + 2
+  g_lines[linenum] = line[:pos].rstrip() + ' ' + line[pos:]
   g_changed = True
 
 def AddCopyrightLine():
@@ -1882,7 +1890,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
             line[commentpos-2] not in string.whitespace))):
         error(filename, linenum, 'whitespace/comments', 2,
               'At least two spaces is best between code and comments')
-        FixLineComment(linenum)
+        FixLineCommentBefore(linenum)
       # There should always be a space between the // and the comment
       commentend = commentpos + 2
       if commentend < len(line) and not line[commentend] == ' ':
@@ -1899,6 +1907,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
         if not match:
           error(filename, linenum, 'whitespace/comments', 4,
                 'Should have a space between // and comment')
+          FixLineCommentAfter(linenum)
       CheckComment(line[commentpos:], filename, linenum, error)
 
   line = clean_lines.elided[linenum]  # get rid of comments and strings
@@ -1913,6 +1922,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
   if Search(r'[\w.]=[\w.]', line) and not Search(r'\b(if|while) ', line):
     error(filename, linenum, 'whitespace/operators', 4,
           'Missing spaces around =')
+    SetLine(linenum, re.sub(r'(?<=[\w.])=(?=[\w.])', ' = ', GetLine(linenum)))
 
   # It's ok not to have spaces around binary operators like + - * /, but if
   # there's too little whitespace, we get concerned.  It's hard to tell,
@@ -1933,6 +1943,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
   if match:
     error(filename, linenum, 'whitespace/operators', 3,
           'Missing spaces around %s' % match.group(1))
+    SetLine(linenum, re.sub(r'(?<=[^<>=!\s])' + match.group(1) + r'(?=[^<>=!\s])', ' ' + match.group(1) + ' ', GetLine(linenum)))
   # We allow no-spaces around << and >> when used like this: 10<<20, but
   # not otherwise (particularly, not when used as streams)
   match = Search(r'[^0-9\s](<<|>>)[^0-9\s]', line)
@@ -1951,6 +1962,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
   if match:
     error(filename, linenum, 'whitespace/parens', 5,
           'Missing space before ( in %s' % match.group(1))
+    SetLine(linenum, re.sub(' %s\(' % s, ' %s (' % s, GetLine(linenum)))
 
   # For if/for/while/switch, the left and right parens should be
   # consistent about how many spaces are inside the parens, and
