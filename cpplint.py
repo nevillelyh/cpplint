@@ -306,16 +306,67 @@ def InitLineBuffer(lines):
   g_lines = [''] + lines + ['']
   g_changed = False
 
-def SetLineBuffer(linenum, line):
+def GetLine(linenum, line):
+  global g_lines, g_changed
+  return g_lines[linenum]
+
+def SetLine(linenum, line):
   global g_lines, g_changed
   g_lines[linenum] = line
   g_changed = True
 
+def RemoveLine(linenum):
+  global g_lines, g_changed
+  if g_lines[linenum].strip() == '':
+    g_lines[linenum] = None
+    g_changed = True
+
+def LStripLine(linenum, substr):
+  """Left strip the first occurrence of substr and following whitespaces."""
+  global g_lines, g_changed
+  line = g_lines[linenum]
+  pos = len(line) - len(line.lstrip())
+  assert line[pos:].startswith(substr)
+  g_lines[linenum] = line[:pos] + line[pos + len(substr):].lstrip()
+  g_changed = True
+
+def RStripLine(linenum, substr):
+  """Right strip the last occurrence of substr and whitespaces before it."""
+  global g_lines, g_changed
+  line = g_lines[linenum]
+  pos = line.rfind(substr)
+  g_lines[linenum] = line[:pos].rstrip()
+  g_changed = True
+
+def PrependLine(linenum, substr, space=True):
+  """Prepend substr at the beginning of a line after whitespaces."""
+  global g_lines, g_changed
+  line = g_lines[linenum]
+  pos = len(line) - len(line.lstrip())
+  if space: substr += ' '
+  g_lines[linenum] = line[:pos] + substr + line[pos:]
+  g_changed = True
+
+def AppendLine(linenum, substr, space=True):
+  """Append substr at the end of a line."""
+  global g_lines, g_changed
+  g_lines[linenum] = g_lines[linenum].rstrip() + ' ' + substr
+  g_changed = True
+
+def FixLineTab(linenum):
+  """Replace tabs at the beginning of a line with spaces."""
+  global g_lines, g_changed
+  line = g_lines[linenum]
+  pos = len(line) - len(line.lstrip())
+  g_lines[linenum] = line[:pos].replace('\t', ' ' * 2) + line[pos:]
+  g_changed = True
+
 def WriteLineBuffer(filename):
+  """Write line buffer to file."""
   global g_lines, g_changed
   if not g_changed or not _cpplint_state.fix_errors: return
   with open(filename, 'w') as outfile:
-    [outfile.write(line + '\n') for line in g_lines[1:-1]]
+    [outfile.write(line + '\n') for line in g_lines[1:-1] if line is not None]
 
 def ParseNolintSuppressions(filename, raw_line, linenum, error):
   """Updates the global list of error-suppressions.
@@ -1121,8 +1172,8 @@ def CheckForHeaderGuard(filename, lines, error):
                             error)
     error(filename, ifndef_linenum, 'build/header_guard', error_level,
           '#ifndef header guard has wrong style, please use: %s' % cppvar)
-    SetLineBuffer(ifndef_linenum, '#ifndef %s' % cppvar)
-    SetLineBuffer(ifndef_linenum + 1, '#define %s' % cppvar)
+    SetLine(ifndef_linenum, '#ifndef %s' % cppvar)
+    SetLine(ifndef_linenum + 1, '#define %s' % cppvar)
 
   if endif != ('#endif  // %s' % cppvar):
     error_level = 0
@@ -1133,7 +1184,7 @@ def CheckForHeaderGuard(filename, lines, error):
                             error)
     error(filename, endif_linenum, 'build/header_guard', error_level,
           '#endif line should be "#endif  // %s"' % cppvar)
-    SetLineBuffer(endif_linenum, '#endif  // %s' % cppvar)
+    SetLine(endif_linenum, '#endif  // %s' % cppvar)
 
 
 def CheckForUnicodeReplacementCharacters(filename, lines, error):
