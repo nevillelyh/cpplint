@@ -1963,6 +1963,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
   if match:
     error(filename, linenum, 'whitespace/parens', 5,
           'Missing space before ( in %s' % match.group(1))
+    s = match.group(1)[:-1]
     SetLine(linenum, re.sub(' %s\(' % s, ' %s (' % s, GetLine(linenum)))
 
   # For if/for/while/switch, the left and right parens should be
@@ -2009,7 +2010,8 @@ def CheckSpacing(filename, clean_lines, linenum, error):
   if Search(r'[^ ({]{', line):
     error(filename, linenum, 'whitespace/braces', 5,
           'Missing space before {')
-    SetLine(linenum, re.sub(r'(?<=[^ ({]){', ' {', GetLine(linenum)))
+    if GetLine(linenum):
+      SetLine(linenum, re.sub(r'(?<=[^ ({]){', ' {', GetLine(linenum)))
 
   # Make sure '} else {' has spaces.
   if Search(r'}else', line):
@@ -2190,6 +2192,7 @@ def CheckBraces(filename, clean_lines, linenum, error):
       not Search(r'struct|class|enum|\s*=\s*{', line)):
     error(filename, linenum, 'readability/braces', 4,
           "You don't need a ; after a }")
+    RStripLine(linenum, ';')
 
 
 def ReplaceableCheck(operator, macro, line):
