@@ -301,6 +301,22 @@ _RE_SUPPRESSION = re.compile(r'\bNOLINT\b(\([^)]*\))?')
 # on which those errors are expected and should be suppressed.
 _error_suppressions = {}
 
+def InitLineBuffer(lines):
+  global g_lines, g_changed
+  g_lines = [''] + lines + ['']
+  g_changed = False
+
+def SetLineBuffer(linenum, line):
+  global g_lines, g_changed
+  g_lines[linenum] = line
+  g_changed = True
+
+def WriteLineBuffer(filename):
+  global g_lines, g_changed
+  if not g_changed or not _cpplint_state.fix_errors: return
+  with open(filename, 'w') as outfile:
+    [outfile.write(line + '\n') for line in g_lines[1:-1]]
+
 def ParseNolintSuppressions(filename, raw_line, linenum, error):
   """Updates the global list of error-suppressions.
 
