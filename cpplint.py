@@ -401,7 +401,7 @@ def WriteLineBuffer(filename):
   """Write line buffer to file."""
   global g_lines, g_changed
   if not g_changed or not _cpplint_state.fix_errors: return
-  with open(filename, 'w') as outfile:
+  with codecs.open(filename, 'w', 'utf8', 'replace') as outfile:
     [outfile.write(line + '\n') for line in g_header if line is not None]
     [outfile.write(line + '\n') for line in g_lines[1:-1] if line is not None]
     [outfile.write(line + '\n') for line in g_footer if line is not None]
