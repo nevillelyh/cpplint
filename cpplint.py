@@ -361,6 +361,14 @@ def FixLineTab(linenum):
   g_lines[linenum] = line[:pos].replace('\t', ' ' * 2) + line[pos:]
   g_changed = True
 
+def FixLineComment(linenum):
+  """Make sure there are 2 spaces between code and comments."""
+  global g_lines, g_changed
+  line = g_lines[linenum]
+  pos = line.find('//')
+  g_lines[linenum] = line[:pos].rstrip() + '  ' + line[pos:]
+  g_changed = True
+
 def WriteLineBuffer(filename):
   """Write line buffer to file."""
   global g_lines, g_changed
@@ -1849,6 +1857,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
             line[commentpos-2] not in string.whitespace))):
         error(filename, linenum, 'whitespace/comments', 2,
               'At least two spaces is best between code and comments')
+        FixLineComment(linenum)
       # There should always be a space between the // and the comment
       commentend = commentpos + 2
       if commentend < len(line) and not line[commentend] == ' ':
@@ -1942,6 +1951,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
   if Search(r',[^\s]', line):
     error(filename, linenum, 'whitespace/comma', 3,
           'Missing space after ,')
+    SetLine(linenum, re.sub(r',(?=[^\s])', ', ', GetLine(linenum)))
 
   # You should always have a space after a semicolon
   # except for few corner cases
@@ -2040,6 +2050,7 @@ def CheckSectionSpacing(filename, clean_lines, class_info, linenum, error):
       if end_class_head < linenum - 1:
         error(filename, linenum, 'whitespace/blank_line', 3,
               '"%s:" should be preceded by a blank line' % matched.group(1))
+        SetLine(linenum, '\n' + GetLine(linenum))
 
 
 def GetPreviousNonBlankLine(clean_lines, linenum):
@@ -2275,6 +2286,7 @@ def CheckStyle(filename, clean_lines, linenum, file_extension, class_state,
   if line and line[-1].isspace():
     error(filename, linenum, 'whitespace/end_of_line', 4,
           'Line ends in whitespace.  Consider deleting these extra spaces.')
+    RStripLine(linenum, ' ')
   # There are certain situations we allow one space, notably for labels
   elif ((initial_spaces == 1 or initial_spaces == 3) and
         not Match(r'\s*\w+\s*:\s*$', cleansed_line)):
