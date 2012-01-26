@@ -319,6 +319,11 @@ def SetLine(linenum, line):
 
 def RemoveLine(linenum):
   global g_lines, g_changed
+  g_lines[linenum] = ''
+  RemoveBlankLine(linenum)
+
+def RemoveBlankLine(linenum):
+  global g_lines, g_changed
   if g_lines[linenum] is None: return
   if g_lines[linenum].strip() == '':
     g_lines[linenum] = None
@@ -1637,6 +1642,7 @@ def CheckSpacingForFunctionCall(filename, line, linenum, error):
   # " (something)[something]"
   # Note that we assume the contents of [] to be short enough that
   # they'll never need to wrap.
+  _fncall = fncall
   if (  # Ignore control structures.
       not Search(r'\b(if|for|while|switch|return|delete)\b', fncall) and
       # Ignore pointers/references to functions.
@@ -1646,6 +1652,8 @@ def CheckSpacingForFunctionCall(filename, line, linenum, error):
     if Search(r'\w\s*\(\s(?!\s*\\$)', fncall):      # a ( used for a fn call
       error(filename, linenum, 'whitespace/parens', 4,
             'Extra space after ( in function call')
+      _match = Search(r'(\w*\s*\()\s(?!\s*\\$)', fncall)
+      _fncall = re.sub(re.escape(_match.group(0)), _match.group(0).rstrip(), _fncall)
     elif Search(r'\(\s+(?!(\s*\\)|\()', fncall):
       error(filename, linenum, 'whitespace/parens', 2,
             'Extra space after (')
@@ -1653,6 +1661,7 @@ def CheckSpacingForFunctionCall(filename, line, linenum, error):
         not Search(r'#\s*define|typedef', fncall)):
       error(filename, linenum, 'whitespace/parens', 4,
             'Extra space before ( in function call')
+      _fncall = re.sub(r'(?<=\w)\s+\(', '(', _fncall)
     # If the ) is followed only by a newline or a { + newline, assume it's
     # part of a control statement (if/while/etc), and don't complain
     if Search(r'[^)]\s+\)\s*[^{\s]', fncall):
@@ -1664,6 +1673,10 @@ def CheckSpacingForFunctionCall(filename, line, linenum, error):
       else:
         error(filename, linenum, 'whitespace/parens', 2,
               'Extra space before )')
+        _match = Search(r'([^)]+\s+)(\)\s*[^{\s])', _fncall)
+        _fncall = re.sub(re.escape(_match.group(1)), _match.group(1).rstrip(), _fncall)
+  if fncall != _fncall:
+    SetLine(linenum, re.sub(re.escape(fncall), _fncall, GetLine(linenum)))
 
 
 def IsBlankLine(line):
@@ -1847,7 +1860,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
       if not exception:
         error(filename, linenum, 'whitespace/blank_line', 2,
               'Blank line at the start of a code block.  Is this needed?')
-        RemoveLine(linenum)
+        RemoveBlankLine(linenum)
     # This doesn't ignore whitespace at the end of a namespace block
     # because that is too hard without pairing open/close braces;
     # however, a special exception is made for namespace closing
@@ -1869,7 +1882,7 @@ def CheckSpacing(filename, clean_lines, linenum, error):
           and next_line.find('} else ') == -1):
         error(filename, linenum, 'whitespace/blank_line', 3,
               'Blank line at the end of a code block.  Is this needed?')
-        RemoveLine(linenum)
+        RemoveBlankLine(linenum)
 
     matched = Match(r'\s*(public|protected|private):', prev_line)
     if matched:
@@ -1944,7 +1957,8 @@ def CheckSpacing(filename, clean_lines, linenum, error):
   if match:
     error(filename, linenum, 'whitespace/operators', 3,
           'Missing spaces around %s' % match.group(1))
-    SetLine(linenum, re.sub(r'(?<=[^<>=!\s])' + match.group(1) + r'(?=[^<>=!\s])', ' ' + match.group(1) + ' ', GetLine(linenum)))
+    _kw = re.escape(match.group(1))
+    SetLine(linenum, re.sub(r'(?<=[^<>=!\s])' + _kw + r'(?=[^<>=!\s])', ' ' + _kw + ' ', GetLine(linenum)))
   # We allow no-spaces around << and >> when used like this: 10<<20, but
   # not otherwise (particularly, not when used as streams)
   match = Search(r'[^0-9\s](<<|>>)[^0-9\s]', line)
@@ -1979,6 +1993,11 @@ def CheckSpacing(filename, clean_lines, linenum, error):
       if not (match.group(3) == ';' and
               len(match.group(2)) == 1 + len(match.group(4)) or
               not match.group(2) and Search(r'\bfor\s*\(.*; \)', line)):
+        _match = Search(r'\b(if|for|while|switch)\s*'
+                       r'\([ ]*(.*[^ ]+)[ ]*\)(\s*{\s*)$',
+                       line)
+        _inner = _match.group(2)
+        SetLine(linenum, re.sub('[ ]*' + re.escape(_inner) + '[ ]*', _inner, GetLine(linenum)))
         error(filename, linenum, 'whitespace/parens', 5,
               'Mismatching spaces inside () in %s' % match.group(1))
     if not len(match.group(2)) in [0, 1]:
@@ -2144,7 +2163,7 @@ def CheckBraces(filename, clean_lines, linenum, error):
             '{ should almost always be at the end of the previous line')
       AppendLine(linenum - 1, '{')
       LStripLine(linenum, '{')
-      RemoveLine(linenum)
+      RemoveBlankLine(linenum)
 
   # An else clause should be on the same line as the preceding closing brace.
   if Match(r'\s*else\s*', line):
@@ -2545,6 +2564,7 @@ def CheckIncludeLine(filename, clean_lines, linenum, include_state, error):
       error(filename, linenum, 'build/include', 4,
             '"%s" already included at %s:%s' %
             (include, filename, include_state[include]))
+      RemoveLine(linenum)
     else:
       include_state[include] = linenum
 
